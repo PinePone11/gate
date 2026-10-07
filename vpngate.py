@@ -333,6 +333,11 @@ def check_one(node, session):
         out["latency_ms"] = j.get("responseTime")
         out["colo"] = j.get("colo")
         out["error"] = (None if ok else (j.get("error") or j.get("message") or "check failed"))
+        return out
+    except Exception as exc:
+        out["error"] = f"{type(exc).__name__}: {exc} (请求URL: {url})"
+        out["worker_error"] = True
+        return out
         # SSTP 版 Worker: 顶层直接返回 exit, 含真实 is_datacenter 标志 + 嵌套 asn 对象
         exit_info = j.get("exit") or {}
         if exit_info:
@@ -669,6 +674,11 @@ def main():
 
     # 3) 并发检测
     log("CLOUDFLARE WORKER", f"提交检测: {len(uniq)} (并发 {CONCURRENCY}, 单请求超时 {CHECK_TIMEOUT}s)")
+  # 添加以下调试打印：
+    if worker_errors:
+        print("====== 错误样本排查 ======")
+        for sample in worker_errors[:5]:
+            print(f"节点: {sample.get('host')} 报错: {sample.get('error')}")
     t0 = time.time()
     results = check_all(uniq, session)
     elapsed = time.time() - t0
