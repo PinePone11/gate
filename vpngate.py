@@ -674,11 +674,6 @@ def main():
 
     # 3) 并发检测
     log("CLOUDFLARE WORKER", f"提交检测: {len(uniq)} (并发 {CONCURRENCY}, 单请求超时 {CHECK_TIMEOUT}s)")
-  # 添加以下调试打印：
-    if worker_errors:
-        print("====== 错误样本排查 ======")
-        for sample in worker_errors[:5]:
-            print(f"节点: {sample.get('host')} 报错: {sample.get('error')}")
     t0 = time.time()
     results = check_all(uniq, session)
     elapsed = time.time() - t0
@@ -690,7 +685,12 @@ def main():
     log("CLOUDFLARE WORKER", f"检测成功: {len(success)}")
     log("CLOUDFLARE WORKER", f"检测失败: {len(failed)}" + (f" (其中 Worker 异常 {len(worker_errors)})" if worker_errors else ""))
     log("CLOUDFLARE WORKER", f"耗时: {elapsed:.1f}s")
-
+   # 添加以下调试打印：
+    if worker_errors:
+        print("====== 错误样本排查 ======")
+        for sample in worker_errors[:5]:
+            print(f"节点: {sample.get('host')} 报错: {sample.get('error')}")
+          
     # 硬性失败: Worker 完全不可达 (没有任何一个请求拿到正常响应)
     if uniq and not success and len(worker_errors) == len(uniq):
         die("Worker 全部请求异常, 检测服务不可用 — 本次运行判定失败 (不生成空结果)")
